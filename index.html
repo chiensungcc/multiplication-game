@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#225ce0"><title>乘法小教室</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f0f5ff;color:#192e51;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}main{max-width:1000px;margin:auto;padding:36px 24px}header{margin-bottom:28px}.tag{font-size:14px;font-weight:800;color:#225ce0;letter-spacing:2px}h1{font-size:clamp(30px,5vw,44px);margin:8px 0}p{line-height:1.7;color:#52647d;margin:8px 0}.layout{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}.panel{background:white;border:1px solid #dce5f5;border-radius:24px;padding:24px;box-shadow:0 10px 30px #25457608}h2{font-size:20px;margin:0 0 18px}.numbers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}button,select{font:inherit}button{cursor:pointer;touch-action:manipulation}button:focus-visible,select:focus-visible{outline:3px solid #ec9600;outline-offset:4px}.number{border:2px solid transparent;border-radius:18px;background:#edf3ff;color:#225ce0;min-height:80px;font-size:38px;font-weight:800;transition:transform .15s,background .15s}.number:hover{background:#dce8ff;transform:translateY(-2px)}.number[aria-pressed=true]{background:#225ce0;color:white;box-shadow:0 5px 0 #1542a4}.hint{font-size:14px;margin-top:20px}.table-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}.table-head h2{margin:0;font-size:26px}.badge{background:#fff0cc;color:#805100;border-radius:30px;padding:7px 12px;font-size:14px;white-space:nowrap}.equations{display:grid;gap:8px}.equation{border:2px solid transparent;border-radius:12px;background:#f4f7fc;color:#192e51;display:flex;align-items:center;justify-content:space-between;padding:10px 18px;text-align:left;min-height:49px}.math{font-size:24px;font-weight:650;letter-spacing:1px;font-variant-numeric:tabular-nums}.math b{color:#225ce0}.speaker{font-size:14px;color:#62748e}.equation.active{background:#e9f1ff;border-color:#225ce0}.equation.active .speaker{color:#225ce0}.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;align-items:center}.action{border:0;border-radius:10px;padding:12px 16px;background:#225ce0;color:white;font-weight:650}.action.secondary{background:#edf1f7;color:#354862}.action:disabled{opacity:.45;cursor:default}label{font-size:14px;display:flex;gap:8px;align-items:center}select{padding:9px;border:1px solid #ccd8e9;border-radius:8px;color:#192e51;background:white}#status{min-height:24px;font-size:14px;margin-top:16px}footer{text-align:center;margin-top:24px;font-size:14px;color:#64758c}@media(max-width:650px){main{padding:24px 16px}.layout{grid-template-columns:1fr;gap:16px}.panel{padding:20px}.numbers{grid-template-columns:repeat(4,1fr)}.number{min-height:60px;font-size:30px}.hint{margin-top:14px}.table-head h2{font-size:23px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<header><span class="tag">一起讀・一起記</span><h1>乘法小教室</h1><p>選一個數字，跟著聲音一起念九九乘法！</p></header>
+<div class="layout">
+<section class="panel" aria-labelledby="choose"><h2 id="choose">今天想練習幾？</h2><div class="numbers" id="numbers"></div><p class="hint">點選數字就會開始朗讀。<br>也可以點選算式，單獨聽一次。</p></section>
+<section class="panel" aria-labelledby="table-title"><div class="table-head"><h2 id="table-title">2 的乘法表</h2><span class="badge">九九乘法</span></div><div class="equations" id="equations"></div>
+<div class="controls"><button class="action" id="replay">▶ 再聽一次</button><button class="action secondary" id="stop" disabled>■ 停止</button><label>語速<select id="rate"><option value="0.65">慢慢念</option><option value="0.85" selected>一般</option><option value="1.05">快一點</option></select></label></div>
+<p id="status" role="status">準備好了！選一個數字開始。</p></section>
+</div><footer>每天練習一點點，乘法越來越熟練。</footer>
+<noscript>請開啟 JavaScript，才能使用乘法練習與朗讀。</noscript>
+</main>
+<script>
+'use strict';
+const numbers=document.getElementById('numbers'),equations=document.getElementById('equations'),status=document.getElementById('status'),stopButton=document.getElementById('stop'),replay=document.getElementById('replay'),rate=document.getElementById('rate');
+const supported='speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+const synth=supported?window.speechSynthesis:null;
+let selected=2,generation=0,currentUtterance=null;
+const digits=['零','一','二','三','四','五','六','七','八','九'];
+function chinese(n){if(n<10)return digits[n];return (n<20?'':digits[Math.floor(n/10)])+'十'+(n%10?digits[n%10]:'');}
+function clearHighlight(){document.querySelectorAll('.equation').forEach(row=>{row.classList.remove('active');row.querySelector('.speaker').textContent='點我聽';});}
+function stop(message){generation++;if(synth)synth.cancel();currentUtterance=null;clearHighlight();stopButton.disabled=true;if(message)status.textContent=message;}
+function render(){document.getElementById('table-title').textContent=selected+' 的乘法表';numbers.querySelectorAll('button').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.number)===selected)));equations.replaceChildren();for(let i=1;i<=9;i++){const row=document.createElement('button');row.type='button';row.className='equation';row.dataset.index=i;row.setAttribute('aria-label',`${selected} 乘以 ${i} 等於 ${selected*i}，點擊朗讀`);row.innerHTML=`<span class="math">${selected} × ${i} = <b>${selected*i}</b></span><span class="speaker" aria-hidden="true">點我聽</span>`;row.addEventListener('click',()=>play(i,false));equations.append(row);}}
+function play(start=1,all=true){stop();if(!supported){status.textContent='這個瀏覽器不支援語音朗讀，仍可閱讀乘法表。';return;}const token=generation,n=selected;stopButton.disabled=false;function speak(i){if(token!==generation)return;clearHighlight();const row=equations.children[i-1];row.classList.add('active');row.querySelector('.speaker').textContent='朗讀中';status.textContent=`正在朗讀：${n} × ${i} = ${n*i}`;const utterance=new SpeechSynthesisUtterance(`${chinese(n)}${chinese(i)}${chinese(n*i)}`);currentUtterance=utterance;utterance.lang='zh-TW';const voices=synth.getVoices();const voice=voices.find(v=>/^zh[-_]TW$/i.test(v.lang))||voices.find(v=>/^zh/i.test(v.lang));if(voice)utterance.voice=voice;utterance.rate=Number(rate.value);utterance.onend=()=>{if(token!==generation)return;if(all&&i<9)speak(i+1);else{currentUtterance=null;clearHighlight();stopButton.disabled=true;status.textContent=all?'念完了！你也跟著念一次吧。':'念完了！可以再點其他算式。';}};utterance.onerror=()=>{if(token!==generation)return;stop('朗讀未能完成，請確認裝置音量與中文語音設定，再按「再聽一次」。');};synth.speak(utterance);}speak(start);}
+for(let n=2;n<=9;n++){const button=document.createElement('button');button.type='button';button.className='number';button.dataset.number=n;button.textContent=n;button.setAttribute('aria-label',`練習 ${n} 的乘法表`);button.addEventListener('click',()=>{stop();selected=n;render();play();});numbers.append(button);}
+replay.addEventListener('click',()=>play());stopButton.addEventListener('click',()=>stop('已停止。按「再聽一次」重新開始。'));window.addEventListener('pagehide',()=>stop());document.addEventListener('visibilitychange',()=>{if(document.hidden)stop('已停止。按「再聽一次」重新開始。');});render();if(!supported){replay.disabled=true;status.textContent='這個瀏覽器不支援語音朗讀，仍可閱讀乘法表。';}
+</script>
+</body>
+</html>
